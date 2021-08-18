@@ -80,6 +80,11 @@ void close(){
 // メイン関数
 ////////////////////////////////////////////////
 int main(int argc, char ** const args){
+    // メインループのフラグ
+    bool quit = false;
+
+    // イベントハンドラー
+    SDL_Event e;
 
     // SDLの起動とウインドウの作成
     if( !init() )
@@ -92,14 +97,23 @@ int main(int argc, char ** const args){
             printf( "Failed to load media!\n" );
         }
         else{
-            // 画像を表示する
-            SDL_BlitSurface( gHelloWorld, NULL, gScreenSurface, NULL);
+            // アプリケーションが起動している間
+            while( !quit ){
+                // キューのイベントをハンドル
+                while( SDL_PollEvent( &e ) != 0){
+                    // ユーザーが閉じるを要求
+                    if( e.type == SDL_QUIT ){
+                        quit = true;
+                    }
+                }
 
-            // サーフェイスの更新
-            SDL_UpdateWindowSurface( gWindow );
+                // 画像を表示する
+                SDL_BlitSurface( gHelloWorld, NULL, gScreenSurface, NULL);
 
-            // 2秒間待つ
-            SDL_Delay( 2000 );
+                // サーフェイスの更新
+                SDL_UpdateWindowSurface( gWindow );
+            }
+            
         }
     }
 
