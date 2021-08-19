@@ -120,12 +120,25 @@ void close(){
 
 // 個々の画像の読み込み
 SDL_Surface* loadSurface( std::string path){
+    // 最終適応画像
+    SDL_Surface* optimizedSurface = NULL;
+
     // 指定したパスの画像を読み込む
     SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
     if( loadedSurface == NULL){
         printf( "Unable to load image %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
     }
-    return loadedSurface;
+    else{
+        // サーフェイスをスクリーンフォーマットにコンバート
+        optimizedSurface = SDL_ConvertSurface( loadedSurface, gScreenSurface->format, 0 );
+        if( optimizedSurface == NULL){
+            printf( "Unable to optimize image %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
+        }
+
+        // 古い読み込まれたサーフェイスを取り除く
+        SDL_FreeSurface( loadedSurface );
+    }
+    return optimizedSurface;
 }
 
 ////////////////////////////////////////////////
@@ -183,8 +196,17 @@ int main(int argc, char ** const args){
                     }
                 }
 
+                // 画像のサイズ変更を適用する
+                SDL_Rect stretchRect;
+                stretchRect.x = 0;
+                stretchRect.y = 0;
+                stretchRect.w = SCREEN_WIDTH;
+                stretchRect.h = SCREEN_HEIGHT;
+                SDL_BlitScaled( gCurrentSurface, NULL, gScreenSurface, &stretchRect );
+
+
                 // 画像を表示する
-                SDL_BlitSurface( gCurrentSurface, NULL, gScreenSurface, NULL);
+                // SDL_BlitSurface( gCurrentSurface, NULL, gScreenSurface, NULL);
 
                 // サーフェイスの更新
                 SDL_UpdateWindowSurface( gWindow );
