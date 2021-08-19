@@ -25,6 +25,10 @@ SDL_Surface* gScreenSurface = NULL;
 SDL_Surface* gKeyPressSurfaces[ KEY_PRESS_SURFACE_TOTAL];
 // 現在表示している画像
 SDL_Surface* gCurrentSurface = NULL;
+// ウインドウレンダラー
+SDL_Renderer* gRenderer = NULL;
+// 現在表示しているテキスチャー
+SDL_Texture* gTexture = NULL;
 
 
 ////////////////////////////////////////////////
@@ -51,15 +55,25 @@ bool init(){
         }
         else
         {
-            // PNGローディングの初期化
-            int imgFlags = IMG_INIT_PNG;
-            if( !( IMG_Init( imgFlags ) & imgFlags ) ){
-                printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+            // ウインドウレンダラーを作成
+            gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED );
+            if( gRenderer == NULL){
+                printf( "Renderer could not be created! SDL Error: %s\n", SDL_GetError() );
                 success = false;
             }
             else{
-                //Get window surface
-                gScreenSurface = SDL_GetWindowSurface( gWindow );
+                // レンダラーカラーを初期化
+                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
+                // PNGローディングの初期化
+                int imgFlags = IMG_INIT_PNG;
+                if( !( IMG_Init( imgFlags ) & imgFlags ) ){
+                    printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+                    success = false;
+                }
+                else{
+                    //Get window surface
+                    gScreenSurface = SDL_GetWindowSurface( gWindow );
+                }
             }
         }
     }
@@ -81,28 +95,35 @@ bool loadMedia(){
     // upサーフェイスを読み込む
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ] = loadSurface( "./media/up.png" );
     if( gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ] == NULL){
-        printf( "Failed to load default image!\n" );
+        printf( "Failed to load up image!\n" );
         success = false;
     }
 
     // downサーフェイスを読み込む
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_DOWN ] = loadSurface( "./media/down.png" );
     if( gKeyPressSurfaces[ KEY_PRESS_SURFACE_DOWN ] == NULL){
-        printf( "Failed to load default image!\n" );
+        printf( "Failed to load down image!\n" );
         success = false;
     }
 
     // leftサーフェイスを読み込む
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_LEFT ] = loadSurface( "./media/left.png" );
     if( gKeyPressSurfaces[ KEY_PRESS_SURFACE_LEFT ] == NULL){
-        printf( "Failed to load default image!\n" );
+        printf( "Failed to load left image!\n" );
         success = false;
     }
 
     // rightサーフェイスを読み込む
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_RIGHT ] = loadSurface( "./media/right.png" );
     if( gKeyPressSurfaces[ KEY_PRESS_SURFACE_RIGHT ] == NULL){
-        printf( "Failed to load default image!\n" );
+        printf( "Failed to load right image!\n" );
+        success = false;
+    }
+
+    // PNGテキスチャを読み込む
+    gTexture = loadTexture( "./media/6star.png" );
+    if( gTexture == NULL ){
+        printf( "Failed to load texture image!\n" );
         success = false;
     }
 
@@ -118,11 +139,17 @@ void close(){
     }
     gCurrentSurface = NULL;
 
+    SDL_DestroyTexture( gTexture );
+    gTexture = NULL;
+
     // ウインドウの破棄
+    SDL_DestroyRenderer( gRenderer );
     SDL_DestroyWindow( gWindow );
+    gRenderer = NULL;
     gWindow = NULL;
 
     // SDLサブシステムを閉じる
+    IMG_Quit();
     SDL_Quit();
 }
 
@@ -147,6 +174,30 @@ SDL_Surface* loadSurface( std::string path){
         SDL_FreeSurface( loadedSurface );
     }
     return optimizedSurface;
+}
+
+// テキスチャーの読み込み
+SDL_Texture* loadTexture( std::string path ){
+    // 最終的なテキスチャー
+    SDL_Texture* newTexture = NULL;
+
+    // 指定したパスの画像を読み込む
+    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
+    if( loadedSurface == NULL){
+        printf( "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() );
+    }
+    else{
+        // サーファイスピクセルからテキスチャーを作成
+        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+        if( newTexture == NULL ){
+            printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
+        }
+
+        // 古い読み込まれたサーフェイスを取り除く
+        SDL_FreeSurface( loadedSurface );
+    }
+
+    return newTexture;
 }
 
 ////////////////////////////////////////////////
@@ -204,6 +255,15 @@ int main(int argc, char ** const args){
                     }
                 }
 
+                // スクリーンのクリア
+                SDL_RenderClear( gRenderer );
+
+                // テキスチャーをスクリーンにレンダー
+                SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
+
+                // スクリーンの更新
+                SDL_RenderPresent( gRenderer );
+                /*
                 // 画像のサイズ変更を適用する
                 SDL_Rect stretchRect;
                 stretchRect.x = 0;
@@ -218,6 +278,7 @@ int main(int argc, char ** const args){
 
                 // サーフェイスの更新
                 SDL_UpdateWindowSurface( gWindow );
+                */
             }
             
         }
