@@ -51,8 +51,16 @@ bool init(){
         }
         else
         {
-            //Get window surface
-            gScreenSurface = SDL_GetWindowSurface( gWindow );
+            // PNGローディングの初期化
+            int imgFlags = IMG_INIT_PNG;
+            if( !( IMG_Init( imgFlags ) & imgFlags ) ){
+                printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+                success = false;
+            }
+            else{
+                //Get window surface
+                gScreenSurface = SDL_GetWindowSurface( gWindow );
+            }
         }
     }
     return success;
