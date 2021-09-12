@@ -29,7 +29,7 @@ class LTexture{
         void free();
 
         // 与えられた位置にテキスチャーをレンダリング
-        void render(int x, int y);
+        void render(int x, int y, SDL_Rect* clip);
 
         // 画像の大きさを取得
         int getWidth();

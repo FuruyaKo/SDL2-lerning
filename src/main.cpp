@@ -22,8 +22,8 @@ SDL_Window* gWindow = NULL;
 // ウインドウレンダラー
 SDL_Renderer* gRenderer = NULL;
 // シーンテキスチャー
-LTexture gFooTexture;
-LTexture gBackgroundTexture;
+LTexture gSpriteSheetTexture;
+SDL_Rect gSpriteClips[4];
 
 ////////////////////////////////////////////////
 // 実装
@@ -75,16 +75,35 @@ bool loadMedia(){
     // ロード完了フラグ
     bool success = true;
 
-    // Fooテキスチャを読み込む
-    if( !gFooTexture.loadFromFile( "./media/up.png" ) ){
+    // テキスチャを読み込む
+    if( !gSpriteSheetTexture.loadFromFile( "./media/sprite_sheet.png" ) ){
         printf( "Failed to load Foo texture image!\n" );
         success = false;
     }
-    
-    // backgroundテキスチャを読み込む
-    if( !gBackgroundTexture.loadFromFile( "./media/6star.png" ) ){
-        printf( "Failed to load background texture image!\n" );
-        success = false;
+    else{
+        // スプライトの左上を設定
+        gSpriteClips[0].x = 0;
+        gSpriteClips[0].y = 0;
+        gSpriteClips[0].w = 128;
+        gSpriteClips[0].h = 128;
+
+        // スプライトの右上を設定
+        gSpriteClips[1].x = 128;
+        gSpriteClips[1].y =   0;
+        gSpriteClips[1].w = 128;
+        gSpriteClips[1].h = 128;
+
+        // スプライトの左下を設定
+        gSpriteClips[2].x = 0;
+        gSpriteClips[2].y = 128;
+        gSpriteClips[2].w = 128;
+        gSpriteClips[2].h = 128;
+
+        // スプライトの右下を設定
+        gSpriteClips[3].x = 128;
+        gSpriteClips[3].y = 128;
+        gSpriteClips[3].w = 128;
+        gSpriteClips[3].h = 128;
     }
 
     return success;
@@ -93,8 +112,7 @@ bool loadMedia(){
 // メディアを解放し、SDLを閉じる
 void close(){
     // 読み込んだ画像を解放する
-    gFooTexture.free();
-    gBackgroundTexture.free();    
+    gSpriteSheetTexture.free();
 
     // ウインドウの破棄
     SDL_DestroyRenderer( gRenderer );
@@ -158,7 +176,7 @@ bool LTexture::loadFromFile( std::string path ){
     }
     else{
         // カラーキーイメージ
-        SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB(loadedSurface->format, 0xFF, 0xFF, 0xFF ) );
+        SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB(loadedSurface->format, 0x0A, 0x0A, 0xF5 ) );
         // サーファイスピクセルからテキスチャーを作成
         newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
         if( newTexture == NULL ){
@@ -189,10 +207,16 @@ void LTexture::free(){
     }
 }
 
-void LTexture::render( int x, int y ){
+void LTexture::render( int x, int y, SDL_Rect* clip ){
     // レンダリング位置を設定してレンダーする
     SDL_Rect renderQuad = { x, y, mWidth, mHeight};
-    SDL_RenderCopy( gRenderer, mTexture, NULL, &renderQuad );
+
+    if( clip != NULL ){
+        renderQuad.w = clip->w;
+        renderQuad.h = clip->h;
+    }
+
+    SDL_RenderCopy( gRenderer, mTexture, clip, &renderQuad );
 }
 
 int LTexture::getWidth(){
@@ -233,28 +257,15 @@ int main(int argc, char ** const args){
                     if( e.type == SDL_QUIT ){
                         quit = true;
                     }
-                    /*
                     // ユーザーがキーを押したとき
                     else if( e.type == SDL_KEYDOWN){
-                        // キー押下を基にサーフェイスを選択する
+                        // キー押下
                         switch( e.key.keysym.sym ){
-                            case SDLK_UP:
-                                gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ];
-                                break;
-                            case SDLK_DOWN:
-                                gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DOWN ];
-                                break;
-                            case SDLK_LEFT:
-                                gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_LEFT ];
-                                break;
-                            case SDLK_RIGHT:
-                                gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_RIGHT ];
-                                break;
-                            default:
-                                gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ];
+                            case SDLK_ESCAPE:
+                                quit = true;
                                 break;
                         }
-                    }*/
+                    }
                 }
 
                 // スクリーンのクリア
@@ -262,10 +273,10 @@ int main(int argc, char ** const args){
                 SDL_RenderClear( gRenderer );
 
                 // Backgroundテキスチャーをスクリーンにレンダーする
-                gBackgroundTexture.render( 0, 0 );
-
-                // Fooテキスチャーをスクリーンにレンダーする
-                gFooTexture.render( 0, 50 );
+                gSpriteSheetTexture.render( 0, 0, &gSpriteClips[0]);
+                gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[1].w, 0, &gSpriteClips[1]);
+                gSpriteSheetTexture.render( 0, SCREEN_HEIGHT - gSpriteClips[2].h, &gSpriteClips[2]);
+                gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[3].w, SCREEN_HEIGHT - gSpriteClips[3].h, &gSpriteClips[3]);
 
                 // スクリーンの更新
                 SDL_RenderPresent( gRenderer );
