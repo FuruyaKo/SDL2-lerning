@@ -23,7 +23,7 @@ SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
 // シーンテキスチャー
 LTexture gSpriteSheetTexture;
-SDL_Rect gSpriteClips[4];
+LTexture gBackgroundTexture;
 
 ////////////////////////////////////////////////
 // 実装
@@ -81,29 +81,13 @@ bool loadMedia(){
         success = false;
     }
     else{
-        // スプライトの左上を設定
-        gSpriteClips[0].x = 0;
-        gSpriteClips[0].y = 0;
-        gSpriteClips[0].w = 128;
-        gSpriteClips[0].h = 128;
+        // 通常のアルファブレンディングモードに設定
+        gSpriteSheetTexture.setBlendMode( SDL_BLENDMODE_BLEND );
+    }
 
-        // スプライトの右上を設定
-        gSpriteClips[1].x = 128;
-        gSpriteClips[1].y =   0;
-        gSpriteClips[1].w = 128;
-        gSpriteClips[1].h = 128;
-
-        // スプライトの左下を設定
-        gSpriteClips[2].x = 0;
-        gSpriteClips[2].y = 128;
-        gSpriteClips[2].w = 128;
-        gSpriteClips[2].h = 128;
-
-        // スプライトの右下を設定
-        gSpriteClips[3].x = 128;
-        gSpriteClips[3].y = 128;
-        gSpriteClips[3].w = 128;
-        gSpriteClips[3].h = 128;
+    if( !gBackgroundTexture.loadFromFile( "./media/6star.png" ) ){
+        printf( "Failed to load Foo texture image!\n" );
+        success = false;
     }
 
     return success;
@@ -211,7 +195,16 @@ void LTexture::setColor( Uint8 red, Uint8 green, Uint8 blue){
     SDL_SetTextureColorMod( mTexture, red, green, blue);
 }
 
-void LTexture::render( int x, int y, SDL_Rect* clip ){
+void LTexture::setBlendMode( SDL_BlendMode blending ){
+    // ブレンド関数を設定
+    SDL_SetTextureBlendMode( mTexture, blending );
+}
+
+void LTexture::setAlpha( Uint8 alpha ){
+    // テキスチャのアルファ値を変調
+    SDL_SetTextureAlphaMod( mTexture, alpha );
+}
+void LTexture::render( int x, int y, SDL_Rect* clip = NULL ){
     // レンダリング位置を設定してレンダーする
     SDL_Rect renderQuad = { x, y, mWidth, mHeight};
 
@@ -242,9 +235,7 @@ int main(int argc, char ** const args){
     SDL_Event e;
 
     // Modulation components
-    Uint8 r = 255;
-    Uint8 g = 255;
-    Uint8 b = 255;
+    Uint8 a = 255;
 
     // SDLの起動とウインドウの作成
     if( !init() )
@@ -274,16 +265,12 @@ int main(int argc, char ** const args){
                                 quit = true;
                                 break;
                             case SDLK_w:
-                                r += 32;
-                                printf("r = %d", r);
-                                break;
-                            case SDLK_a:
-                                g += 32;
-                                printf("g = %d", g);
-                                break;
-                            case SDLK_d:
-                                b += 32;
-                                printf("b = %d", b);
+                                if( a - 32 < 255 - 31){
+                                    a += 32;
+                                }else{
+                                    a = 0;
+                                }
+                                printf("a = %d", a);
                                 break;
                         }
                     }
@@ -295,11 +282,12 @@ int main(int argc, char ** const args){
                 SDL_RenderClear( gRenderer );
 
                 // Backgroundテキスチャーをスクリーンにレンダーする
-                gSpriteSheetTexture.setColor( r, g, b );
-                gSpriteSheetTexture.render( 0, 0, &gSpriteClips[0]);
-                gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[1].w, 0, &gSpriteClips[1]);
-                gSpriteSheetTexture.render( 0, SCREEN_HEIGHT - gSpriteClips[2].h, &gSpriteClips[2]);
-                gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[3].w, SCREEN_HEIGHT - gSpriteClips[3].h, &gSpriteClips[3]);
+                gBackgroundTexture.render( 0, 0 );
+
+                // ブレンドテキスチャーをレンダーする
+                gSpriteSheetTexture.setAlpha( a );
+                gSpriteSheetTexture.render( 0, 0 );
+
 
                 // スクリーンの更新
                 SDL_RenderPresent( gRenderer );

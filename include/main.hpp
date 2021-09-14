@@ -28,11 +28,17 @@ class LTexture{
         // メモリの解放
         void free();
 
-        // カラー変調のセット
+        // カラー変調の設定
         void setColor( Uint8 red, Uint8 green, Uint8 blue);
 
+        // ブレンディングの設定
+        void setBlendMode( SDL_BlendMode blending);
+
+        // アルファ変調
+        void setAlpha( Uint8 alpha);
+
         // 与えられた位置にテキスチャーをレンダリング
-        void render(int x, int y, SDL_Rect* clip = NULL );
+        void render(int x, int y, SDL_Rect* clip );
 
         // 画像の大きさを取得
         int getWidth();
