@@ -207,6 +207,10 @@ void LTexture::free(){
     }
 }
 
+void LTexture::setColor( Uint8 red, Uint8 green, Uint8 blue){
+    SDL_SetTextureColorMod( mTexture, red, green, blue);
+}
+
 void LTexture::render( int x, int y, SDL_Rect* clip ){
     // レンダリング位置を設定してレンダーする
     SDL_Rect renderQuad = { x, y, mWidth, mHeight};
@@ -237,6 +241,11 @@ int main(int argc, char ** const args){
     // イベントハンドラー
     SDL_Event e;
 
+    // Modulation components
+    Uint8 r = 255;
+    Uint8 g = 255;
+    Uint8 b = 255;
+
     // SDLの起動とウインドウの作成
     if( !init() )
     {
@@ -264,15 +273,29 @@ int main(int argc, char ** const args){
                             case SDLK_ESCAPE:
                                 quit = true;
                                 break;
+                            case SDLK_w:
+                                r += 32;
+                                printf("r = %d", r);
+                                break;
+                            case SDLK_a:
+                                g += 32;
+                                printf("g = %d", g);
+                                break;
+                            case SDLK_d:
+                                b += 32;
+                                printf("b = %d", b);
+                                break;
                         }
                     }
                 }
+                
 
                 // スクリーンのクリア
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
                 SDL_RenderClear( gRenderer );
 
                 // Backgroundテキスチャーをスクリーンにレンダーする
+                gSpriteSheetTexture.setColor( r, g, b );
                 gSpriteSheetTexture.render( 0, 0, &gSpriteClips[0]);
                 gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[1].w, 0, &gSpriteClips[1]);
                 gSpriteSheetTexture.render( 0, SCREEN_HEIGHT - gSpriteClips[2].h, &gSpriteClips[2]);
