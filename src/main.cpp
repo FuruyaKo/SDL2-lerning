@@ -23,7 +23,10 @@ SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
 // シーンテキスチャー
 LTexture gSpriteSheetTexture;
-LTexture gBackgroundTexture;
+// アニメーション
+const int WALKING_ANIMATION_FRAMES = 4;
+SDL_Rect gSpriteClips[ WALKING_ANIMATION_FRAMES ];
+
 
 ////////////////////////////////////////////////
 // 実装
@@ -49,8 +52,8 @@ bool init(){
         }
         else
         {
-            // ウインドウレンダラーを作成
-            gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED );
+            // ウインドウレンダラーを作成vsync
+            gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC );
             if( gRenderer == NULL){
                 printf( "Renderer could not be created! SDL Error: %s\n", SDL_GetError() );
                 success = false;
@@ -76,18 +79,31 @@ bool loadMedia(){
     bool success = true;
 
     // テキスチャを読み込む
-    if( !gSpriteSheetTexture.loadFromFile( "./media/sprite_sheet.png" ) ){
+    if( !gSpriteSheetTexture.loadFromFile( "./media/anime.png" ) ){
         printf( "Failed to load Foo texture image!\n" );
         success = false;
     }
     else{
-        // 通常のアルファブレンディングモードに設定
-        gSpriteSheetTexture.setBlendMode( SDL_BLENDMODE_BLEND );
-    }
+        // スプライトクリップを設定
+        gSpriteClips[0].x = 0;
+        gSpriteClips[0].y = 0;
+        gSpriteClips[0].w = 64;
+        gSpriteClips[0].h = 256;
 
-    if( !gBackgroundTexture.loadFromFile( "./media/6star.png" ) ){
-        printf( "Failed to load Foo texture image!\n" );
-        success = false;
+        gSpriteClips[1].x = 64;
+        gSpriteClips[1].y = 0;
+        gSpriteClips[1].w = 64;
+        gSpriteClips[1].h = 256;
+
+        gSpriteClips[2].x = 128;
+        gSpriteClips[2].y = 0;
+        gSpriteClips[2].w = 64;
+        gSpriteClips[2].h = 256;
+
+        gSpriteClips[3].x = 192;
+        gSpriteClips[3].y = 0;
+        gSpriteClips[3].w = 64;
+        gSpriteClips[3].h = 256;
     }
 
     return success;
@@ -204,6 +220,7 @@ void LTexture::setAlpha( Uint8 alpha ){
     // テキスチャのアルファ値を変調
     SDL_SetTextureAlphaMod( mTexture, alpha );
 }
+
 void LTexture::render( int x, int y, SDL_Rect* clip = NULL ){
     // レンダリング位置を設定してレンダーする
     SDL_Rect renderQuad = { x, y, mWidth, mHeight};
@@ -235,7 +252,7 @@ int main(int argc, char ** const args){
     SDL_Event e;
 
     // Modulation components
-    Uint8 a = 255;
+    int frame = 0;
 
     // SDLの起動とウインドウの作成
     if( !init() )
@@ -264,14 +281,6 @@ int main(int argc, char ** const args){
                             case SDLK_ESCAPE:
                                 quit = true;
                                 break;
-                            case SDLK_w:
-                                if( a - 32 < 255 - 31){
-                                    a += 32;
-                                }else{
-                                    a = 0;
-                                }
-                                printf("a = %d", a);
-                                break;
                         }
                     }
                 }
@@ -281,16 +290,20 @@ int main(int argc, char ** const args){
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
                 SDL_RenderClear( gRenderer );
 
-                // Backgroundテキスチャーをスクリーンにレンダーする
-                gBackgroundTexture.render( 0, 0 );
-
-                // ブレンドテキスチャーをレンダーする
-                gSpriteSheetTexture.setAlpha( a );
-                gSpriteSheetTexture.render( 0, 0 );
-
+                // テキスチャーをレンダーする
+                SDL_Rect* currentClip = &gSpriteClips[ int(frame / 600) ];
+                gSpriteSheetTexture.render( ( SCREEN_WIDTH - currentClip->w ) / 2, (SCREEN_HEIGHT - currentClip->h ) / 2, currentClip );
 
                 // スクリーンの更新
                 SDL_RenderPresent( gRenderer );
+
+                // 次のフレーム
+                ++frame;
+                
+                // アニメーションサイクル
+                if( frame > WALKING_ANIMATION_FRAMES * 600){
+                    frame = 0;
+                }
             }
             
         }
