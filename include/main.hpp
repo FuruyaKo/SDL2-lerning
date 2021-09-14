@@ -38,7 +38,7 @@ class LTexture{
         void setAlpha( Uint8 alpha);
 
         // 与えられた位置にテキスチャーをレンダリング
-        void render(int x, int y, SDL_Rect* clip );
+        void render(int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip =  SDL_FLIP_NONE );
 
         // 画像の大きさを取得
         int getWidth();

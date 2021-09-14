@@ -22,10 +22,7 @@ SDL_Window* gWindow = NULL;
 // ウインドウレンダラー
 SDL_Renderer* gRenderer = NULL;
 // シーンテキスチャー
-LTexture gSpriteSheetTexture;
-// アニメーション
-const int WALKING_ANIMATION_FRAMES = 4;
-SDL_Rect gSpriteClips[ WALKING_ANIMATION_FRAMES ];
+LTexture gSpriteTexture;
 
 
 ////////////////////////////////////////////////
@@ -79,31 +76,11 @@ bool loadMedia(){
     bool success = true;
 
     // テキスチャを読み込む
-    if( !gSpriteSheetTexture.loadFromFile( "./media/anime.png" ) ){
+    if( !gSpriteTexture.loadFromFile( "./media/up.png" ) ){
         printf( "Failed to load Foo texture image!\n" );
         success = false;
     }
     else{
-        // スプライトクリップを設定
-        gSpriteClips[0].x = 0;
-        gSpriteClips[0].y = 0;
-        gSpriteClips[0].w = 64;
-        gSpriteClips[0].h = 256;
-
-        gSpriteClips[1].x = 64;
-        gSpriteClips[1].y = 0;
-        gSpriteClips[1].w = 64;
-        gSpriteClips[1].h = 256;
-
-        gSpriteClips[2].x = 128;
-        gSpriteClips[2].y = 0;
-        gSpriteClips[2].w = 64;
-        gSpriteClips[2].h = 256;
-
-        gSpriteClips[3].x = 192;
-        gSpriteClips[3].y = 0;
-        gSpriteClips[3].w = 64;
-        gSpriteClips[3].h = 256;
     }
 
     return success;
@@ -112,7 +89,7 @@ bool loadMedia(){
 // メディアを解放し、SDLを閉じる
 void close(){
     // 読み込んだ画像を解放する
-    gSpriteSheetTexture.free();
+    gSpriteTexture.free();
 
     // ウインドウの破棄
     SDL_DestroyRenderer( gRenderer );
@@ -221,7 +198,7 @@ void LTexture::setAlpha( Uint8 alpha ){
     SDL_SetTextureAlphaMod( mTexture, alpha );
 }
 
-void LTexture::render( int x, int y, SDL_Rect* clip = NULL ){
+void LTexture::render( int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip ){
     // レンダリング位置を設定してレンダーする
     SDL_Rect renderQuad = { x, y, mWidth, mHeight};
 
@@ -230,7 +207,7 @@ void LTexture::render( int x, int y, SDL_Rect* clip = NULL ){
         renderQuad.h = clip->h;
     }
 
-    SDL_RenderCopy( gRenderer, mTexture, clip, &renderQuad );
+    SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
 }
 
 int LTexture::getWidth(){
@@ -251,8 +228,11 @@ int main(int argc, char ** const args){
     // イベントハンドラー
     SDL_Event e;
 
-    // Modulation components
-    int frame = 0;
+    // 回転角度
+    double degrees = 0;
+
+    //  フリップタイプ
+    SDL_RendererFlip flipType = SDL_FLIP_NONE;
 
     // SDLの起動とウインドウの作成
     if( !init() )
@@ -281,6 +261,21 @@ int main(int argc, char ** const args){
                             case SDLK_ESCAPE:
                                 quit = true;
                                 break;
+                            case SDLK_a:
+                                degrees -= 60;
+                                break;
+                            case SDLK_d:
+                                degrees += 60;
+                                break;
+                            case SDLK_q:
+                                flipType = SDL_FLIP_HORIZONTAL;
+                                break;
+                            case SDLK_w:
+                                flipType = SDL_FLIP_NONE;
+                                break;
+                            case SDLK_e:
+                                flipType = SDL_FLIP_VERTICAL;
+                                break;
                         }
                     }
                 }
@@ -291,19 +286,10 @@ int main(int argc, char ** const args){
                 SDL_RenderClear( gRenderer );
 
                 // テキスチャーをレンダーする
-                SDL_Rect* currentClip = &gSpriteClips[ int(frame / 600) ];
-                gSpriteSheetTexture.render( ( SCREEN_WIDTH - currentClip->w ) / 2, (SCREEN_HEIGHT - currentClip->h ) / 2, currentClip );
+                gSpriteTexture.render( ( SCREEN_WIDTH - gSpriteTexture.getWidth() ) / 2, (SCREEN_HEIGHT - gSpriteTexture.getHeight() ) / 2, NULL, degrees, NULL, flipType );
 
                 // スクリーンの更新
                 SDL_RenderPresent( gRenderer );
-
-                // 次のフレーム
-                ++frame;
-                
-                // アニメーションサイクル
-                if( frame > WALKING_ANIMATION_FRAMES * 600){
-                    frame = 0;
-                }
             }
             
         }
