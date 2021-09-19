@@ -5,14 +5,11 @@
 ////////////////////////////////////////////////
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
-enum KeyPressSurfaces{
-    KEY_PRESS_SURFACE_DEFAULT,
-    KEY_PRESS_SURFACE_UP,
-    KEY_PRESS_SURFACE_DOWN,
-    KEY_PRESS_SURFACE_LEFT,
-    KEY_PRESS_SURFACE_RIGHT,
-    KEY_PRESS_SURFACE_TOTAL
-};
+// Button constants
+const int BUTTON_WIDTH = 300;
+const int BUTTON_HEIGHT = 200;
+const int TOTAL_BUTTONS = 4;
+
 
 ////////////////////////////////////////////////
 // グローバル変数
@@ -24,8 +21,8 @@ SDL_Renderer* gRenderer = NULL;
 // フォント
 TTF_Font *gFont = NULL;
 // テキスチャー
-LTexture gTextTexture;
-
+LTexture gButtonSpriteSheetTexture;
+SDL_Rect gSpriteClips[ TOTAL_BUTTONS ];
 
 ////////////////////////////////////////////////
 // 実装
@@ -83,6 +80,35 @@ bool loadMedia(){
     // ロード完了フラグ
     bool success = true;
 
+    // スプライトシートテキスチャの読み込み
+    if( !gButtonSpriteSheetTexture.loadFromFile( "./media/sprite_sheet.png" ) ){
+        printf( "Failed to load walking animation texture!\n" );
+        success = false;
+    }else{
+        // スプライトクリップを設定
+        gSpriteClips[ 0 ].x =   0;
+        gSpriteClips[ 0 ].y =   0;
+        gSpriteClips[ 0 ].w = 128;
+        gSpriteClips[ 0 ].h = 128;
+
+        gSpriteClips[ 1 ].x = 128;
+        gSpriteClips[ 1 ].y =   0;
+        gSpriteClips[ 1 ].w = 128;
+        gSpriteClips[ 1 ].h = 128;
+
+        gSpriteClips[ 2 ].x =   0;
+        gSpriteClips[ 2 ].y = 128;
+        gSpriteClips[ 2 ].w = 128;
+        gSpriteClips[ 2 ].h = 128;
+
+        gSpriteClips[ 3 ].x = 128;
+        gSpriteClips[ 3 ].y = 128;
+        gSpriteClips[ 3 ].w = 128;
+        gSpriteClips[ 3 ].h = 128;
+        
+    }
+
+    /*
     // フォントを開く
     gFont = TTF_OpenFont( "./media/GenShinGothic-Regular.ttf", 28 );
     if( gFont == NULL ){
@@ -92,19 +118,19 @@ bool loadMedia(){
     else{
         // テキストをレンダー
         SDL_Color textColor = { 0, 0, 0 };
-        if( !gTextTexture.loadFromRenderedText( "The quick brown fox jumps over the lazy dog", textColor ) ){
+        if( !gTexture.loadFromRenderedText( "The quick brown fox jumps over the lazy dog", textColor ) ){
             printf( "Failed to render text texture!\n" );
             success = false;
         }
     }
-
+    */
     return success;
 }
 
 // メディアを解放し、SDLを閉じる
 void close(){
     // 読み込んだ画像を解放する
-    gTextTexture.free();
+    gButtonSpriteSheetTexture.free();
 
     // グローバルフォントの解放
     TTF_CloseFont( gFont );
@@ -194,6 +220,7 @@ bool LTexture::loadFromFile( std::string path ){
     return mTexture != NULL;
 }
 
+#if defined(SDL_TTF_MAJOR_VERSION)
 bool LTexture::loadFromRenderedText( string textureText, SDL_Color textColor ){
     // 既存のテキスチャを消去
     free();
@@ -222,6 +249,7 @@ bool LTexture::loadFromRenderedText( string textureText, SDL_Color textColor ){
     // 結果を返す
     return mTexture != NULL;
 }
+#endif
 
 void LTexture::free(){
     // 存在しているならテキスチャーを解放する
@@ -267,6 +295,73 @@ int LTexture::getHeight(){
     return mHeight;
 }
 
+// LButtonの実装
+LButton::LButton(){
+    mPosition.x = 0;
+    mPosition.y = 0;
+
+    mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
+}
+
+void LButton::setPosition( int x, int y ){
+    mPosition.x = x;
+    mPosition.y = y;
+}
+
+void LButton::handleEvent( SDL_Event* e ){
+    // マウスボタンのイベントが発生
+    if( e->type == SDL_MOUSEMOTION || e->type == SDL_MOUSEBUTTONDOWN || e->type == SDL_MOUSEBUTTONUP ){
+        // マウス位置の取得
+        int x, y;
+        SDL_GetMouseState( &x, &y );
+
+        // マウスがボタンに含まれるか確認
+        bool inside = true;
+
+        // 左のボタンにマウス
+        if( x < mPosition.x ){
+            inside = false;
+        }
+        // 右のボタンにマウス
+        else if( x > mPosition.x + BUTTON_WIDTH ){
+            inside = false;
+        }
+        // 上のボタンにマウス
+        else if( y < mPosition.y ){
+            inside = false;
+        }
+        // 下のボタンにマウス
+        else if( y > mPosition.y + BUTTON_HEIGHT ){
+            inside = false;
+        }
+
+        // 外側にマウス
+        if( !inside ){
+            mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
+        }
+        // 内側にマウス
+        else{
+            // スプライトの上にマウス
+            switch( e->type ){
+                case SDL_MOUSEMOTION:
+                    mCurrentSprite = BUTTON_SPRITE_MOUSE_OVER_MOTION;
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                    mCurrentSprite = BUTTON_SPRITE_MOUSE_DOWN;
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    mCurrentSprite = BUTTON_SPRITE_MOUSE_UP;
+                    break;
+            }
+        }
+    }
+}
+
+void LButton::render(){
+    // 現在のボタンスプライトを表示
+    gButtonSpriteSheetTexture.render( mPosition.x, mPosition.y, &gSpriteClips[ mCurrentSprite ] );
+}
+
 ////////////////////////////////////////////////
 // メイン関数
 ////////////////////////////////////////////////
@@ -276,6 +371,7 @@ int main(int argc, char ** const args){
 
     // イベントハンドラー
     SDL_Event e;
+    LButton gButtons[ TOTAL_BUTTONS ];
 
     // SDLの起動とウインドウの作成
     if( !init() )
@@ -316,6 +412,12 @@ int main(int argc, char ** const args){
                                 break;
                         }
                     }
+                    else{
+                        // ボタンイベントをハンドル
+                        for( int i = 0; i < TOTAL_BUTTONS; ++i ){
+                            gButtons[ i ].handleEvent( &e );
+                        }
+                    }
                 }
                 
 
@@ -324,7 +426,9 @@ int main(int argc, char ** const args){
                 SDL_RenderClear( gRenderer );
 
                 // テキスチャーをレンダーする
-                gTextTexture.render( ( SCREEN_WIDTH - gTextTexture.getWidth() ) / 2, (SCREEN_HEIGHT - gTextTexture.getHeight() ) / 2 );
+                for( int i = 0; i < TOTAL_BUTTONS; ++i ){
+                    gButtons[ i ].render();
+                }
 
                 // スクリーンの更新
                 SDL_RenderPresent( gRenderer );
