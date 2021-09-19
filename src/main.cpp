@@ -21,8 +21,10 @@ enum KeyPressSurfaces{
 SDL_Window* gWindow = NULL;
 // ウインドウレンダラー
 SDL_Renderer* gRenderer = NULL;
-// シーンテキスチャー
-LTexture gSpriteTexture;
+// フォント
+TTF_Font *gFont = NULL;
+// テキスチャー
+LTexture gTextTexture;
 
 
 ////////////////////////////////////////////////
@@ -64,6 +66,12 @@ bool init(){
                     printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
                     success = false;
                 }
+
+                // SDL_ttfの初期化
+                if( TTF_Init() == -1 ){
+                    printf( "SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError() );
+                    success = false;
+                }
             }
         }
     }
@@ -75,12 +83,19 @@ bool loadMedia(){
     // ロード完了フラグ
     bool success = true;
 
-    // テキスチャを読み込む
-    if( !gSpriteTexture.loadFromFile( "./media/up.png" ) ){
-        printf( "Failed to load Foo texture image!\n" );
+    // フォントを開く
+    gFont = TTF_OpenFont( "./media/GenShinGothic-Regular.ttf", 28 );
+    if( gFont == NULL ){
+        printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
         success = false;
     }
     else{
+        // テキストをレンダー
+        SDL_Color textColor = { 0, 0, 0 };
+        if( !gTextTexture.loadFromRenderedText( "The quick brown fox jumps over the lazy dog", textColor ) ){
+            printf( "Failed to render text texture!\n" );
+            success = false;
+        }
     }
 
     return success;
@@ -89,7 +104,11 @@ bool loadMedia(){
 // メディアを解放し、SDLを閉じる
 void close(){
     // 読み込んだ画像を解放する
-    gSpriteTexture.free();
+    gTextTexture.free();
+
+    // グローバルフォントの解放
+    TTF_CloseFont( gFont );
+    gFont = NULL;
 
     // ウインドウの破棄
     SDL_DestroyRenderer( gRenderer );
@@ -98,6 +117,7 @@ void close(){
     gWindow = NULL;
 
     // SDLサブシステムを閉じる
+    TTF_Quit();
     IMG_Quit();
     SDL_Quit();
 }
@@ -174,6 +194,35 @@ bool LTexture::loadFromFile( std::string path ){
     return mTexture != NULL;
 }
 
+bool LTexture::loadFromRenderedText( string textureText, SDL_Color textColor ){
+    // 既存のテキスチャを消去
+    free();
+
+    // テキストサーフェイスをレンダー
+    SDL_Surface* textSurface = TTF_RenderText_Solid( gFont, textureText.c_str(), textColor);
+    if( textSurface ==NULL ){
+        printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
+    }
+    else{
+        // サーフェイスピクセルからテキスチャを生成
+        mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
+        if( mTexture == NULL ){
+            printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
+        }
+        else{
+            // イメージの次元数を取得
+            mWidth = textSurface->w;
+            mHeight = textSurface->h;
+        }
+
+        // 古いサーフェイスを消去
+        SDL_FreeSurface( textSurface );
+    }
+
+    // 結果を返す
+    return mTexture != NULL;
+}
+
 void LTexture::free(){
     // 存在しているならテキスチャーを解放する
     if( mTexture != NULL ){
@@ -228,12 +277,6 @@ int main(int argc, char ** const args){
     // イベントハンドラー
     SDL_Event e;
 
-    // 回転角度
-    double degrees = 0;
-
-    //  フリップタイプ
-    SDL_RendererFlip flipType = SDL_FLIP_NONE;
-
     // SDLの起動とウインドウの作成
     if( !init() )
     {
@@ -262,19 +305,14 @@ int main(int argc, char ** const args){
                                 quit = true;
                                 break;
                             case SDLK_a:
-                                degrees -= 60;
                                 break;
                             case SDLK_d:
-                                degrees += 60;
                                 break;
                             case SDLK_q:
-                                flipType = SDL_FLIP_HORIZONTAL;
                                 break;
                             case SDLK_w:
-                                flipType = SDL_FLIP_NONE;
                                 break;
                             case SDLK_e:
-                                flipType = SDL_FLIP_VERTICAL;
                                 break;
                         }
                     }
@@ -286,7 +324,7 @@ int main(int argc, char ** const args){
                 SDL_RenderClear( gRenderer );
 
                 // テキスチャーをレンダーする
-                gSpriteTexture.render( ( SCREEN_WIDTH - gSpriteTexture.getWidth() ) / 2, (SCREEN_HEIGHT - gSpriteTexture.getHeight() ) / 2, NULL, degrees, NULL, flipType );
+                gTextTexture.render( ( SCREEN_WIDTH - gTextTexture.getWidth() ) / 2, (SCREEN_HEIGHT - gTextTexture.getHeight() ) / 2 );
 
                 // スクリーンの更新
                 SDL_RenderPresent( gRenderer );

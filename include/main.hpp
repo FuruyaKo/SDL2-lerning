@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bits/stdc++.h>
 #include <iostream>
 #include <string>
 #include <SDL2/SDL.h>
@@ -7,6 +8,8 @@
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_net.h>
+
+using namespace std;
 
 bool init();
 bool loadMedia();
@@ -24,6 +27,9 @@ class LTexture{
 
         // 指定したパスの画像を読み込む
         bool loadFromFile( std::string path );
+
+        // フォント文字から画像を生成
+        bool loadFromRenderedText( string textureText, SDL_Color textColor );
 
         // メモリの解放
         void free();
